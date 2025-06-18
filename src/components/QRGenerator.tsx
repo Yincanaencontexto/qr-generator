@@ -90,7 +90,12 @@ export function QRGenerator() {
     };
 
     const handleDownload = () => { /* ... (sin cambios) ... */ };
-    const handleTypeChange = (type: QRType) => { /* ... (sin cambios) ... */ };
+    // LA VERSIÓN CORRECTA Y DEFINITIVA
+const handleTypeChange = (newType: QRType) => {
+    setQrType(newType);
+    if (newType === 'url') setInputValue('https://');
+    if (newType === 'text') setInputValue('¡Hola mundo!');
+};
     const renderForm = () => { /* ... (sin cambios) ... */ };
 
     return (
