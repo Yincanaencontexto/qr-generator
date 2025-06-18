@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from 'react';
 import QRCode from 'qrcode';
-import { Download, Link as LinkIcon, Type, Smartphone, Mail } from 'lucide-react';
+import { Download, Link as LinkIcon, Type } from 'lucide-react';
 
 // <-- NUEVO: Definimos los tipos de QR que soportaremos
 type QRType = 'url' | 'text' | 'phone' | 'email';
