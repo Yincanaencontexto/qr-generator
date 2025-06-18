@@ -1,8 +1,11 @@
 import { useState, useRef, useEffect } from 'react';
 import QRCode from 'qrcode';
-import { Download, Link as LinkIcon, Type, Palette, Image as ImageIcon } from 'lucide-react';
+// <-- CORRECCIÓN #1: Eliminado 'ImageIcon' porque no se usa en el HTML.
+import { Download, Link as LinkIcon, Type, Palette } from 'lucide-react';
 
 type QRType = 'url' | 'text';
+// <-- CORRECCIÓN #2: Le decimos a TypeScript cuáles son los niveles válidos.
+type QRErrorCorrectionLevel = 'L' | 'M' | 'Q' | 'H';
 
 export function QRGenerator() {
     const [qrType, setQrType] = useState<QRType>('url');
@@ -28,13 +31,13 @@ export function QRGenerator() {
             return;
         }
 
-        // <-- CORRECCIÓN #1: Añadimos 'as QRCode.QRCodeToCanvasOptions' para ser específicos con el tipo
         const options = {
             width: 300,
             margin: 2,
-            errorCorrectionLevel: 'H',
+            // <-- CORRECCIÓN #2 (Aplicación): Le decimos que 'H' es de tipo QRErrorCorrectionLevel
+            errorCorrectionLevel: 'H' as QRErrorCorrectionLevel, 
             color: { dark: colorDark, light: colorLight },
-        } as QRCode.QRCodeToCanvasOptions;
+        };
 
         QRCode.toCanvas(canvas, inputValue, options, (error) => {
             if (error) {
@@ -92,7 +95,6 @@ export function QRGenerator() {
         if (newType === 'text') setInputValue('¡Hola mundo!');
     };
 
-    // <-- CORRECCIÓN #2: Nos aseguramos de que esta función SIEMPRE devuelve algo (incluso null)
     const renderForm = () => {
         switch (qrType) {
             case 'url':
@@ -105,7 +107,7 @@ export function QRGenerator() {
             case 'text':
                 return <textarea value={inputValue} onChange={(e) => setInputValue(e.target.value)} placeholder="Escribe tu texto aquí..." className="w-full p-2 border rounded-md focus:ring-2 focus:ring-brand-primary outline-none" rows={4} />;
             default:
-                return null; // Esta línea es crucial para evitar el error #2
+                return null;
         }
     };
 
