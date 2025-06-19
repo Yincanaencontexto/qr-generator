@@ -1,10 +1,10 @@
 import { useState, useRef, useEffect } from 'react';
-import QRCodeStyling, { DotType, CornerSquareType, Options as qrOptions } from 'qr-code-styling';
-import { Download, Link as LinkIcon, Type, Palette, Mail, MessageSquare, Wifi, Frame, Smartphone, ChevronDown } from 'lucide-react';
+import QRCodeStyling, { DotType, CornerSquareType } from 'qr-code-styling';
+import { Download, Link as LinkIcon, Type, Palette, Mail, MessageSquare, Wifi, Smartphone, ChevronDown } from 'lucide-react';
 import { countryCodes, Country } from '../data/country-codes';
 
+// Tipos de la aplicación
 type QRType = 'url' | 'text' | 'email' | 'sms' | 'wifi' | 'phone';
-type FrameType = 'none' | 'scan-me-1' | 'scan-me-2';
 
 const dotStyleOptions: { name: string, value: DotType }[] = [ { name: 'Cuadrado', value: 'square' }, { name: 'Punto', value: 'dots' }, { name: 'Redondeado', value: 'rounded' }, { name: 'Extra Redondeado', value: 'extra-rounded' }, { name: 'Con Clase', value: 'classy' }, { name: 'Con Clase (Redondo)', value: 'classy-rounded' }];
 const eyeStyleOptions: { name: string, value: CornerSquareType }[] = [ { name: 'Cuadrado', value: 'square' }, { name: 'Punto', value: 'dot' }, { name: 'Extra Redondo', value: 'extra-rounded' }];
@@ -46,16 +46,24 @@ export function QRGenerator() {
     useEffect(() => {
         if (!qrInstance) return;
         let finalData = '';
+        let isEmpty = true;
+
         switch (qrType) {
-            case 'url': case 'text': finalData = inputValue; break;
-            case 'email': finalData = `mailto:${emailData.to}?subject=${encodeURIComponent(emailData.subject)}`; break;
-            case 'sms': finalData = `SMSTO:${smsData.number}:${encodeURIComponent(smsData.message)}`; break;
-            case 'wifi': finalData = `WIFI:T:${wifiData.encryption};S:${wifiData.ssid};P:${wifiData.password};;`; break;
-            case 'phone': finalData = `tel:${phoneData.country.dial_code}${phoneData.number}`; break;
+            case 'url': case 'text': finalData = inputValue; isEmpty = !inputValue.trim(); break;
+            case 'email': finalData = `mailto:${emailData.to}?subject=${encodeURIComponent(emailData.subject)}`; isEmpty = !emailData.to.trim(); break;
+            case 'sms': finalData = `SMSTO:${smsData.number}:${encodeURIComponent(smsData.message)}`; isEmpty = !smsData.number.trim(); break;
+            case 'wifi': finalData = `WIFI:T:${wifiData.encryption};S:${wifiData.ssid};P:${wifiData.password};;`; isEmpty = !wifiData.ssid.trim(); break;
+            case 'phone': finalData = `tel:${phoneData.country.dial_code}${phoneData.number}`; isEmpty = !phoneData.number.trim(); break;
         }
         setQrData(finalData);
+
+        if (!finalData.trim()){
+             qrInstance.update({ data: ' ' }); // Dibuja un QR vacío si no hay datos
+             return;
+        }
+        
         qrInstance.update({
-            data: finalData || ' ',
+            data: finalData,
             dotsOptions: { color: colorDark, type: dotStyle },
             cornersSquareOptions: { color: colorDark, type: eyeStyle },
             backgroundOptions: { color: colorLight },
@@ -131,7 +139,7 @@ export function QRGenerator() {
                 <h2 className="text-xl font-bold text-dark-text mb-4">Vista Previa</h2>
                 <div ref={previewRef} className="w-[300px] h-[300px] bg-transparent flex items-center justify-center mb-6"></div>
                  <div className="relative w-full">
-                    <button  onClick={() => setDownloadMenuOpen(!isDownloadMenuOpen)} disabled={!qrData}  className="w-full flex items-center justify-center gap-2 bg-gradient-to-r from-brand-primary to-brand-secondary text-white font-bold py-3 px-6 rounded-lg shadow-lg hover:scale-105 transition-transform disabled:opacity-50 disabled:cursor-not-allowed"> <Download size={20} /> Descargar <ChevronDown size={20} className={`transition-transform ${isDownloadMenuOpen ? 'rotate-180' : ''}`} /> </button>
+                    <button  onClick={() => setDownloadMenuOpen(!isDownloadMenuOpen)} disabled={!qrData.trim()}  className="w-full flex items-center justify-center gap-2 bg-gradient-to-r from-brand-primary to-brand-secondary text-white font-bold py-3 px-6 rounded-lg shadow-lg hover:scale-105 transition-transform disabled:opacity-50 disabled:cursor-not-allowed"> <Download size={20} /> Descargar <ChevronDown size={20} className={`transition-transform ${isDownloadMenuOpen ? 'rotate-180' : ''}`} /> </button>
                     {isDownloadMenuOpen && (
                         <div className="absolute bottom-full mb-2 w-full bg-white rounded-lg shadow-xl border overflow-hidden z-10">
                             <button onClick={handlePngDownload} className="w-full text-left px-4 py-3 hover:bg-gray-100">Descargar PNG</button>
