@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect } from 'react';
 import QRCode from 'qrcode';
 import { Download, Link as LinkIcon, Type, Palette, Mail, MessageSquare, Wifi, Frame, Smartphone } from 'lucide-react';
-import { countryCodes } from '../data/country-codes';
+import { countryCodes, Country } from '../data/country-codes';
 
 type QRType = 'url' | 'text' | 'email' | 'sms' | 'wifi' | 'phone';
 type QRErrorCorrectionLevel = 'L' | 'M' | 'Q' | 'H';
@@ -139,7 +139,25 @@ export function QRGenerator() {
             case 'wifi':
                 return ( <div className="space-y-4"> <input type="text" value={wifiData.ssid} onChange={(e) => setWifiData({...wifiData, ssid: e.target.value})} placeholder="Nombre de la Red (SSID)" className="w-full p-2 border rounded-md"/> <input type="password" value={wifiData.password} onChange={(e) => setWifiData({...wifiData, password: e.target.value})} placeholder="Contraseña" className="w-full p-2 border rounded-md"/> <div> <label className="text-sm font-medium text-gray-700">Cifrado</label> <select value={wifiData.encryption} onChange={(e) => setWifiData({...wifiData, encryption: e.target.value})} className="w-full p-2 mt-1 border rounded-md bg-white"> <option value="WPA">WPA/WPA2</option> <option value="WEP">WEP</option> <option value="nopass">Ninguno</option> </select> </div> </div> );
             case 'phone':
-                return ( <div className="flex gap-2"> <select className="p-2 border rounded-md bg-white max-w-[150px]" onChange={(e) => { const selectedCountry = countryCodes.find(c => c.code === e.target.value); if (selectedCountry) setPhoneData({...phoneData, country: selectedCountry}); }} value={phoneData.country.code}> {countryCodes.map(c => ( <option key={c.code} value={c.code}> {c.flag} {c.code} ({c.dial_code}) </option> ))} </select> <input type="tel" value={phoneData.number} onChange={(e) => setPhoneData({...phoneData, number: e.target.value})} placeholder="Número de teléfono" className="w-full p-2 border rounded-md"/> </div> );
+                return (
+                    <div className="flex gap-2">
+                        <select 
+                            className="p-2 border rounded-md bg-white max-w-[150px]"
+                            onChange={(e) => {
+                                const selectedCountry = countryCodes.find((c: Country) => c.code === e.target.value);
+                                if (selectedCountry) setPhoneData({...phoneData, country: selectedCountry});
+                            }}
+                            value={phoneData.country.code}
+                        >
+                            {countryCodes.map((c: Country) => (
+                                <option key={c.code} value={c.code}>
+                                    {c.flag} {c.code} ({c.dial_code})
+                                </option>
+                            ))}
+                        </select>
+                        <input type="tel" value={phoneData.number} onChange={(e) => setPhoneData({...phoneData, number: e.target.value})} placeholder="Número de teléfono" className="w-full p-2 border rounded-md"/>
+                    </div>
+                );
             default:
                 return null;
         }
