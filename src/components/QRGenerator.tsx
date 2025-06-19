@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
-import QRCodeStyling, { DotType, CornerSquareType } from 'qr-code-styling';
+import QRCodeStyling, { DotType, CornerSquareType, CornerDotType } from 'qr-code-styling';
 import { Download, Link as LinkIcon, Mail, MessageSquare, Wifi, Smartphone, ChevronDown, ImageIcon, TextCursorInput, Paintbrush, ScanLine, QrCode, User } from 'lucide-react';
 import { countryCodes, Country } from '../data/country-codes';
 
@@ -7,6 +7,7 @@ type QRType = 'url' | 'text' | 'email' | 'sms' | 'wifi' | 'phone' | 'vcard';
 
 const dotStyleOptions: { name: string, value: DotType }[] = [ { name: 'Cuadrado', value: 'square' }, { name: 'Punto', value: 'dots' }, { name: 'Redondeado', value: 'rounded' }, { name: 'Extra Redondeado', value: 'extra-rounded' }, { name: 'Con Clase', value: 'classy' }, { name: 'Con Clase (Redondo)', value: 'classy-rounded' }];
 const eyeStyleOptions: { name: string, value: CornerSquareType }[] = [ { name: 'Cuadrado', value: 'square' }, { name: 'Punto', value: 'dot' }, { name: 'Extra Redondo', value: 'extra-rounded' }];
+const eyeDotStyleOptions: { name: string, value: CornerDotType }[] = [ { name: 'Cuadrado', value: 'square' }, { name: 'Punto', value: 'dot' }];
 
 export function QRGenerator() {
     const [qrType, setQrType] = useState<QRType>('url');
@@ -21,11 +22,13 @@ export function QRGenerator() {
 
     const [colorDark, setColorDark] = useState('#000000');
     const [colorLight, setColorLight] = useState('#FFFFFF');
-    const [eyeColor, setEyeColor] = useState('#000000');
-
     const [logo, setLogo] = useState<string | null>(null);
     const [dotStyle, setDotStyle] = useState<DotType>('square');
-    const [eyeStyle, setEyeStyle] = useState<CornerSquareType>('square');
+
+    const [eyeFrameStyle, setEyeFrameStyle] = useState<CornerSquareType>('square');
+    const [eyeFrameColor, setEyeFrameColor] = useState('#000000');
+    const [eyeDotStyle, setEyeDotStyle] = useState<CornerDotType>('square');
+    const [eyeDotColor, setEyeDotColor] = useState('#000000');
 
     const previewRef = useRef<HTMLDivElement>(null);
     const [qrInstance] = useState(new QRCodeStyling({ width: 300, height: 300, margin: 0, type: 'canvas', imageOptions: { hideBackgroundDots: true, imageSize: 0.4, margin: 5 } }));
@@ -46,23 +49,21 @@ export function QRGenerator() {
         qrInstance.update({
             data: finalData || ' ',
             dotsOptions: { color: colorDark, type: dotStyle },
-            cornersSquareOptions: { color: eyeColor, type: eyeStyle },
+            cornersSquareOptions: { color: eyeFrameColor, type: eyeFrameStyle },
+            cornersDotOptions: { color: eyeDotColor, type: eyeDotStyle },
             backgroundOptions: { color: colorLight },
             image: logo || undefined,
         });
-    }, [inputValue, emailData, smsData, wifiData, phoneData, vCardData, qrType, colorDark, colorLight, logo, dotStyle, eyeStyle, eyeColor, qrInstance]);
+    }, [inputValue, emailData, smsData, wifiData, phoneData, vCardData, qrType, colorDark, colorLight, logo, dotStyle, eyeFrameStyle, eyeFrameColor, eyeDotStyle, eyeDotColor, qrInstance]);
 
     useEffect(() => {
-        if (previewRef.current) {
-            previewRef.current.innerHTML = '';
-            qrInstance.append(previewRef.current);
-        }
+        if (previewRef.current) { qrInstance.append(previewRef.current); }
     }, [qrInstance]);
 
     const handlePngDownload = () => { qrInstance?.download({ name: 'qr-code', extension: 'png' }); setDownloadMenuOpen(false); };
     const handleSvgDownload = () => { qrInstance?.download({ name: 'qr-code', extension: 'svg' }); setDownloadMenuOpen(false); };
     const handleLogoUpload = (e: React.ChangeEvent<HTMLInputElement>) => { if (e.target.files && e.target.files[0]) { const reader = new FileReader(); reader.onload = (event) => setLogo(event.target?.result as string); reader.readAsDataURL(e.target.files[0]); } };
-    const handleTypeChange = (newType: QRType) => { setQrType(newType); setInputValue(newType === 'url' ? 'https://' : '¡Hola Mundo!'); setEmailData({ to: '', subject: '' }); setSmsData({ number: '', message: '' }); setWifiData({ ssid: '', password: '', encryption: 'WPA' }); setPhoneData({ country: countryCodes[0], number: '' }); setVCardData({ firstName: '', lastName: '', phone: '', email: '', company: '', title: '', website: '' }); };
+    const handleTypeChange = (newType: QRType) => { setQrType(newType); setInputValue(newType === 'url' ? 'https://' : '¡Hola Mundo!'); setEmailData({ to: '', subject: '' }); setSmsData({ number: '', message: '' }); setWifiData({ ssid: '', password: '', encryption: 'WPA' }); setPhoneData({ country: countryCodes[0], number: '' }); setVCardData({ firstName: '', lastName: '', phone: '', email: '', company: '', title: '', website: '' });};
     
     const renderForm = () => {
         switch (qrType) {
@@ -97,16 +98,23 @@ export function QRGenerator() {
                     <div className="bg-white p-6 rounded-xl shadow-sm"> <h3 className="font-bold text-lg mb-4 flex items-center gap-2"><ScanLine size={22}/> Contenido</h3> {renderForm()} </div>
                     <div className="bg-white p-6 rounded-xl shadow-sm">
                         <h3 className="font-bold text-lg mb-4 flex items-center gap-2"><Paintbrush size={22}/> Diseño y Colores</h3>
-                        <div className="grid grid-cols-2 lg:grid-cols-3 gap-4">
-                            <div><label className="text-sm font-medium text-gray-600">Puntos</label><input type="color" value={colorDark} onChange={(e) => setColorDark(e.target.value)} className="w-full h-10 mt-1 p-1 border rounded-md cursor-pointer"/></div>
-                            <div><label className="text-sm font-medium text-gray-600">Fondo</label><input type="color" value={colorLight} onChange={(e) => setColorLight(e.target.value)} className="w-full h-10 mt-1 p-1 border rounded-md cursor-pointer"/></div>
-                            <div><label className="text-sm font-medium text-gray-600">Ojos</label><input type="color" value={eyeColor} onChange={(e) => setEyeColor(e.target.value)} className="w-full h-10 mt-1 p-1 border rounded-md cursor-pointer"/></div>
-                        </div>
-                        <div className="mt-6 border-t pt-4">
-                            <h4 className="text-md font-semibold text-gray-700 mb-2">Formas</h4>
-                            <div className="grid grid-cols-2 gap-4">
-                                <div><label className="text-sm font-medium text-gray-600">Estilo Puntos</label><select onChange={(e) => setDotStyle(e.target.value as DotType)} value={dotStyle} className="w-full p-2 mt-1 border rounded-md bg-white">{dotStyleOptions.map(opt => <option key={opt.value} value={opt.value}>{opt.name}</option>)}</select></div>
-                                <div><label className="text-sm font-medium text-gray-600">Estilo Ojos</label><select onChange={(e) => setEyeStyle(e.target.value as CornerSquareType)} value={eyeStyle} className="w-full p-2 mt-1 border rounded-md bg-white">{eyeStyleOptions.map(opt => <option key={opt.value} value={opt.value}>{opt.name}</option>)}</select></div>
+                        <div className="space-y-4">
+                            <div>
+                                <h4 className="text-md font-semibold text-gray-700 mb-2">Colores</h4>
+                                <div className="grid grid-cols-2 lg:grid-cols-3 gap-4">
+                                    <div><label className="text-sm font-medium text-gray-600">Puntos</label><input type="color" value={colorDark} onChange={(e) => setColorDark(e.target.value)} className="w-full h-10 mt-1 p-1 border rounded-md cursor-pointer"/></div>
+                                    <div><label className="text-sm font-medium text-gray-600">Fondo</label><input type="color" value={colorLight} onChange={(e) => setColorLight(e.target.value)} className="w-full h-10 mt-1 p-1 border rounded-md cursor-pointer"/></div>
+                                    <div><label className="text-sm font-medium text-gray-600">Marco Ojos</label><input type="color" value={eyeFrameColor} onChange={(e) => setEyeFrameColor(e.target.value)} className="w-full h-10 mt-1 p-1 border rounded-md cursor-pointer"/></div>
+                                    <div><label className="text-sm font-medium text-gray-600">Punto Ojos</label><input type="color" value={eyeDotColor} onChange={(e) => setEyeDotColor(e.target.value)} className="w-full h-10 mt-1 p-1 border rounded-md cursor-pointer"/></div>
+                                </div>
+                            </div>
+                            <div className="mt-6 border-t pt-4">
+                                <h4 className="text-md font-semibold text-gray-700 mb-2">Formas</h4>
+                                <div className="grid grid-cols-2 lg:grid-cols-3 gap-4">
+                                    <div><label className="text-sm font-medium text-gray-600">Puntos</label><select onChange={(e) => setDotStyle(e.target.value as DotType)} value={dotStyle} className="w-full p-2 mt-1 border rounded-md bg-white">{dotStyleOptions.map(opt => <option key={opt.value} value={opt.value}>{opt.name}</option>)}</select></div>
+                                    <div><label className="text-sm font-medium text-gray-600">Marco Ojos</label><select onChange={(e) => setEyeFrameStyle(e.target.value as CornerSquareType)} value={eyeFrameStyle} className="w-full p-2 mt-1 border rounded-md bg-white">{eyeStyleOptions.map(opt => <option key={opt.value} value={opt.value}>{opt.name}</option>)}</select></div>
+                                    <div><label className="text-sm font-medium text-gray-600">Punto Ojos</label><select onChange={(e) => setEyeDotStyle(e.target.value as CornerDotType)} value={eyeDotStyle} className="w-full p-2 mt-1 border rounded-md bg-white">{eyeDotStyleOptions.map(opt => <option key={opt.value} value={opt.value}>{opt.name}</option>)}</select></div>
+                                </div>
                             </div>
                         </div>
                     </div>
