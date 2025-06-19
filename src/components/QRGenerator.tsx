@@ -67,11 +67,11 @@ export function QRGenerator() {
         ctx.fillStyle = '#FFFFFF';
         ctx.fillRect(0, 0, frameSize, frameSize);
         
-        const qrImageUrl = await qrInstance.getImageUrl('png');
-        if (!qrImageUrl) return;
+        const qrImageBlob = await qrInstance.getRawData('png');
+        if (!qrImageBlob) return;
         
         const image = new Image();
-        image.src = qrImageUrl;
+        image.src = URL.createObjectURL(qrImageBlob as Blob);
         image.onload = () => {
             const qrSize = 300;
             let qrX = (frameSize - qrSize) / 2;
@@ -97,6 +97,7 @@ export function QRGenerator() {
                 }
             }
             setFinalImage(finalCanvas.toDataURL());
+            URL.revokeObjectURL(image.src);
         };
     };
 
@@ -184,7 +185,7 @@ export function QRGenerator() {
                 <div className="w-[350px] h-[350px] bg-white p-2 rounded-lg shadow-md mb-6 flex items-center justify-center">
                     {finalImage ? <img src={finalImage} alt="Generated QR Code" style={{maxWidth: '100%', maxHeight: '100%'}} /> : <div className="text-gray-400 text-center">Generando...</div>}
                 </div>
-                {/* Div oculto donde se dibuja el QR base, ya no es necesario */}
+                {/* Div oculto que usa la librería qr-code-styling, ya no lo necesitamos */}
                 {/* <div ref={previewRef} style={{ display: 'none' }}></div> */}
                 <canvas ref={finalCanvasRef} style={{ display: 'none' }}></canvas>
                  <div className="relative w-full">
