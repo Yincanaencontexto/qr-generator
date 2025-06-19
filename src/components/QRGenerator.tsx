@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from 'react';
 import QRCodeStyling, { DotType, CornerSquareType } from 'qr-code-styling';
-import { Download, Link as LinkIcon, Type, Palette, Mail, MessageSquare, Wifi, Smartphone, ChevronDown, ImageIcon, TextCursorInput, Paintbrush, ScanLine } from 'lucide-react';
+import { Download, Link as LinkIcon, Mail, MessageSquare, Wifi, Smartphone, ChevronDown, ImageIcon, TextCursorInput, Paintbrush, ScanLine } from 'lucide-react';
 import { countryCodes, Country } from '../data/country-codes';
 
 type QRType = 'url' | 'text' | 'email' | 'sms' | 'wifi' | 'phone';
