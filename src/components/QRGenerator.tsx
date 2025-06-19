@@ -1,10 +1,10 @@
 import { useState, useRef, useEffect } from 'react';
 import QRCodeStyling, { DotType, CornerSquareType } from 'qr-code-styling';
-import { Download, Link as LinkIcon, Type, Palette, Mail, MessageSquare, Wifi, Smartphone, ChevronDown } from 'lucide-react';
+import { Download, Link as LinkIcon, Type, Palette, Mail, MessageSquare, Wifi, Frame, Smartphone, ChevronDown } from 'lucide-react';
 import { countryCodes, Country } from '../data/country-codes';
 
-// Tipos de la aplicación
 type QRType = 'url' | 'text' | 'email' | 'sms' | 'wifi' | 'phone';
+type FrameType = 'none' | 'scan-me-1' | 'scan-me-2';
 
 const dotStyleOptions: { name: string, value: DotType }[] = [ { name: 'Cuadrado', value: 'square' }, { name: 'Punto', value: 'dots' }, { name: 'Redondeado', value: 'rounded' }, { name: 'Extra Redondeado', value: 'extra-rounded' }, { name: 'Con Clase', value: 'classy' }, { name: 'Con Clase (Redondo)', value: 'classy-rounded' }];
 const eyeStyleOptions: { name: string, value: CornerSquareType }[] = [ { name: 'Cuadrado', value: 'square' }, { name: 'Punto', value: 'dot' }, { name: 'Extra Redondo', value: 'extra-rounded' }];
@@ -24,29 +24,16 @@ export function QRGenerator() {
     const [logo, setLogo] = useState<string | null>(null);
     const [dotStyle, setDotStyle] = useState<DotType>('square');
     const [eyeStyle, setEyeStyle] = useState<CornerSquareType>('square');
+    const [frame, setFrame] = useState<FrameType>('none');
 
     const previewRef = useRef<HTMLDivElement>(null);
-    const [qrInstance, setQrInstance] = useState<QRCodeStyling | null>(null);
+    const [qrInstance] = useState(new QRCodeStyling({ width: 300, height: 300, margin: 5, type: 'canvas', imageOptions: { hideBackgroundDots: true, imageSize: 0.4, margin: 5 } }));
+    const finalCanvasRef = useRef<HTMLCanvasElement>(null);
+    const [finalImage, setFinalImage] = useState<string | null>(null);
     const [isDownloadMenuOpen, setDownloadMenuOpen] = useState(false);
 
     useEffect(() => {
-        const qr = new QRCodeStyling({
-            width: 300,
-            height: 300,
-            margin: 5,
-            type: 'canvas',
-            dotsOptions: { color: colorDark, type: dotStyle },
-            cornersSquareOptions: { color: colorDark, type: eyeStyle },
-            backgroundOptions: { color: colorLight },
-            imageOptions: { hideBackgroundDots: true, imageSize: 0.4, margin: 5 },
-        });
-        setQrInstance(qr);
-    }, []);
-
-    useEffect(() => {
-        if (!qrInstance) return;
         let finalData = '';
-
         switch (qrType) {
             case 'url': case 'text': finalData = inputValue; break;
             case 'email': finalData = `mailto:${emailData.to}?subject=${encodeURIComponent(emailData.subject)}`; break;
@@ -55,30 +42,88 @@ export function QRGenerator() {
             case 'phone': finalData = `tel:${phoneData.country.dial_code}${phoneData.number}`; break;
         }
         setQrData(finalData);
-
-        if (!finalData.trim()){
-             qrInstance.update({ data: ' ' });
-             return;
-        }
         
         qrInstance.update({
-            data: finalData,
+            data: finalData || ' ',
             dotsOptions: { color: colorDark, type: dotStyle },
             cornersSquareOptions: { color: colorDark, type: eyeStyle },
             backgroundOptions: { color: colorLight },
             image: logo || undefined,
         });
-    }, [inputValue, emailData, smsData, wifiData, phoneData, qrType, colorDark, colorLight, logo, dotStyle, eyeStyle, qrInstance]);
+
+        generateFinalImage();
+
+    }, [inputValue, emailData, smsData, wifiData, phoneData, qrType, colorDark, colorLight, logo, dotStyle, eyeStyle, frame, qrInstance]);
 
     useEffect(() => {
-        if (qrInstance && previewRef.current) {
-            previewRef.current.innerHTML = '';
+        if (previewRef.current) {
             qrInstance.append(previewRef.current);
         }
     }, [qrInstance]);
 
-    const handlePngDownload = () => { qrInstance?.download({ name: 'qr-code', extension: 'png' }); setDownloadMenuOpen(false); };
-    const handleSvgDownload = () => { qrInstance?.download({ name: 'qr-code', extension: 'svg' }); setDownloadMenuOpen(false); };
+    const generateFinalImage = async () => {
+        const finalCanvas = finalCanvasRef.current;
+        if (!finalCanvas) return;
+        const ctx = finalCanvas.getContext('2d');
+        if (!ctx) return;
+
+        const frameSize = 400;
+        finalCanvas.width = frameSize;
+        finalCanvas.height = frameSize;
+        
+        ctx.fillStyle = '#FFFFFF';
+        ctx.fillRect(0, 0, frameSize, frameSize);
+        
+        const qrImageBlob = await qrInstance.getRawData('png');
+        if (!qrImageBlob) return;
+        
+        const image = new Image();
+        image.src = URL.createObjectURL(qrImageBlob);
+        image.onload = () => {
+            const qrSize = 300;
+            let qrX = (frameSize - qrSize) / 2;
+            let qrY = (frameSize - qrSize) / 2;
+
+            if (frame === 'none') {
+                ctx.drawImage(image, qrX, qrY, qrSize, qrSize);
+            } else {
+                ctx.fillStyle = colorDark;
+                ctx.font = 'bold 30px Arial';
+                ctx.textAlign = 'center';
+
+                if (frame === 'scan-me-1') {
+                    const textY = 50;
+                    qrY = textY + 15;
+                    ctx.fillText('SCAN ME', frameSize / 2, textY);
+                    ctx.drawImage(image, qrX, qrY, qrSize, qrSize);
+                } else if (frame === 'scan-me-2') {
+                    qrY = 30;
+                    const textY = qrY + qrSize + 35;
+                    ctx.drawImage(image, qrX, qrY, qrSize, qrSize);
+                    ctx.fillText('SCAN ME', frameSize / 2, textY);
+                }
+            }
+            setFinalImage(finalCanvas.toDataURL());
+            URL.revokeObjectURL(image.src);
+        };
+    };
+
+    const handlePngDownload = () => {
+        const canvas = finalCanvasRef.current;
+        if (canvas) {
+            const link = document.createElement('a');
+            link.download = 'qr-code-final.png';
+            link.href = canvas.toDataURL('image/png');
+            link.click();
+        }
+        setDownloadMenuOpen(false);
+    };
+
+    const handleSvgDownload = () => {
+        qrInstance.download({ name: 'qr-code', extension: 'svg' });
+        setDownloadMenuOpen(false);
+    };
+    
     const handleLogoUpload = (e: React.ChangeEvent<HTMLInputElement>) => { if (e.target.files && e.target.files[0]) { const reader = new FileReader(); reader.onload = (event) => setLogo(event.target?.result as string); reader.readAsDataURL(e.target.files[0]); } };
     const handleTypeChange = (newType: QRType) => { setQrType(newType); setInputValue(newType === 'url' ? 'https://' : '¡Hola Mundo!'); setEmailData({ to: '', subject: '' }); setSmsData({ number: '', message: '' }); setWifiData({ ssid: '', password: '', encryption: 'WPA' }); setPhoneData({ country: countryCodes[0], number: '' }); };
     
@@ -97,7 +142,7 @@ export function QRGenerator() {
     return (
         <div className="container max-w-5xl mx-auto bg-white rounded-2xl shadow-2xl p-6 md:p-10 grid lg:grid-cols-2 gap-10">
             <div className="flex flex-col space-y-6">
-                 <div> <h1 className="text-3xl font-bold text-dark-text mb-2">Generador de QR Profesional</h1> <p className="text-gray-500">Crea y personaliza tus códigos QR fácilmente.</p> </div>
+                <div> <h1 className="text-3xl font-bold text-dark-text mb-2">Generador de QR Profesional</h1> <p className="text-gray-500">Crea y personaliza tus códigos QR fácilmente.</p> </div>
                 <div className="flex flex-wrap gap-2 border-b pb-4">
                     <button onClick={() => handleTypeChange('url')} className={`px-4 py-2 rounded-lg flex items-center gap-2 transition-colors ${qrType === 'url' ? 'bg-brand-primary text-white' : 'bg-gray-100 hover:bg-gray-200'}`}><LinkIcon size={18} /> URL</button>
                     <button onClick={() => handleTypeChange('text')} className={`px-4 py-2 rounded-lg flex items-center gap-2 transition-colors ${qrType === 'text' ? 'bg-brand-primary text-white' : 'bg-gray-100 hover:bg-gray-200'}`}><Type size={18} /> Texto</button>
@@ -133,16 +178,28 @@ export function QRGenerator() {
                         </div>
                     </div>
                 </div>
+                 <div className="bg-light-bg p-4 rounded-lg border">
+                    <h2 className="font-semibold text-lg mb-4 flex items-center gap-2"><Frame size={20} /> Marcos</h2>
+                    <div className="flex flex-wrap gap-2">
+                        <button onClick={() => setFrame('none')} className={`px-3 py-2 text-sm rounded-lg border-2 ${frame === 'none' ? 'border-brand-primary bg-brand-primary/10' : 'border-gray-200'}`}>Sin Marco</button>
+                        <button onClick={() => setFrame('scan-me-1')} className={`px-3 py-2 text-sm rounded-lg border-2 ${frame === 'scan-me-1' ? 'border-brand-primary bg-brand-primary/10' : 'border-gray-200'}`}>Scan Me #1</button>
+                        <button onClick={() => setFrame('scan-me-2')} className={`px-3 py-2 text-sm rounded-lg border-2 ${frame === 'scan-me-2' ? 'border-brand-primary bg-brand-primary/10' : 'border-gray-200'}`}>Scan Me #2</button>
+                    </div>
+                </div>
             </div>
             <div className="bg-light-bg rounded-lg p-6 flex flex-col items-center justify-center border-2 border-dashed">
                 <h2 className="text-xl font-bold text-dark-text mb-4">Vista Previa</h2>
-                <div ref={previewRef} className="w-[300px] h-[300px] bg-transparent flex items-center justify-center mb-6"></div>
+                <div className="w-[350px] h-[350px] bg-white p-2 rounded-lg shadow-md mb-6 flex items-center justify-center">
+                    {finalImage ? <img src={finalImage} alt="Generated QR Code" style={{maxWidth: '100%', maxHeight: '100%'}} /> : <div className="text-gray-400 text-center">Generando...</div>}
+                </div>
+                <div ref={previewRef} style={{ display: 'none' }}></div>
+                <canvas ref={finalCanvasRef} style={{ display: 'none' }}></canvas>
                  <div className="relative w-full">
                     <button  onClick={() => setDownloadMenuOpen(!isDownloadMenuOpen)} disabled={!qrData.trim()}  className="w-full flex items-center justify-center gap-2 bg-gradient-to-r from-brand-primary to-brand-secondary text-white font-bold py-3 px-6 rounded-lg shadow-lg hover:scale-105 transition-transform disabled:opacity-50 disabled:cursor-not-allowed"> <Download size={20} /> Descargar <ChevronDown size={20} className={`transition-transform ${isDownloadMenuOpen ? 'rotate-180' : ''}`} /> </button>
                     {isDownloadMenuOpen && (
                         <div className="absolute bottom-full mb-2 w-full bg-white rounded-lg shadow-xl border overflow-hidden z-10">
-                            <button onClick={handlePngDownload} className="w-full text-left px-4 py-3 hover:bg-gray-100">Descargar PNG</button>
-                            <button onClick={handleSvgDownload} className="w-full text-left px-4 py-3 hover:bg-gray-100 border-t">Descargar SVG</button>
+                            <button onClick={handlePngDownload} className="w-full text-left px-4 py-3 hover:bg-gray-100">Descargar PNG (con marco)</button>
+                            <button onClick={handleSvgDownload} className="w-full text-left px-4 py-3 hover:bg-gray-100 border-t">Descargar SVG (sin marco)</button>
                         </div>
                     )}
                 </div>
