@@ -26,7 +26,6 @@ export function QRGenerator() {
     const [eyeStyle, setEyeStyle] = useState<CornerSquareType>('square');
     const [frame, setFrame] = useState<FrameType>('none');
 
-    const previewRef = useRef<HTMLDivElement>(null);
     const [qrInstance] = useState(new QRCodeStyling({ width: 300, height: 300, margin: 5, type: 'canvas', imageOptions: { hideBackgroundDots: true, imageSize: 0.4, margin: 5 } }));
     const finalCanvasRef = useRef<HTMLCanvasElement>(null);
     const [finalImage, setFinalImage] = useState<string | null>(null);
@@ -55,12 +54,6 @@ export function QRGenerator() {
 
     }, [inputValue, emailData, smsData, wifiData, phoneData, qrType, colorDark, colorLight, logo, dotStyle, eyeStyle, frame, qrInstance]);
 
-    useEffect(() => {
-        if (previewRef.current) {
-            qrInstance.append(previewRef.current);
-        }
-    }, [qrInstance]);
-
     const generateFinalImage = async () => {
         const finalCanvas = finalCanvasRef.current;
         if (!finalCanvas) return;
@@ -74,11 +67,11 @@ export function QRGenerator() {
         ctx.fillStyle = '#FFFFFF';
         ctx.fillRect(0, 0, frameSize, frameSize);
         
-        const qrImageBlob = await qrInstance.getRawData('png');
-        if (!qrImageBlob) return;
+        const qrImageUrl = await qrInstance.getImageUrl('png');
+        if (!qrImageUrl) return;
         
         const image = new Image();
-        image.src = URL.createObjectURL(qrImageBlob);
+        image.src = qrImageUrl;
         image.onload = () => {
             const qrSize = 300;
             let qrX = (frameSize - qrSize) / 2;
@@ -104,7 +97,6 @@ export function QRGenerator() {
                 }
             }
             setFinalImage(finalCanvas.toDataURL());
-            URL.revokeObjectURL(image.src);
         };
     };
 
@@ -142,7 +134,7 @@ export function QRGenerator() {
     return (
         <div className="container max-w-5xl mx-auto bg-white rounded-2xl shadow-2xl p-6 md:p-10 grid lg:grid-cols-2 gap-10">
             <div className="flex flex-col space-y-6">
-                <div> <h1 className="text-3xl font-bold text-dark-text mb-2">Generador de QR Profesional</h1> <p className="text-gray-500">Crea y personaliza tus códigos QR fácilmente.</p> </div>
+                 <div> <h1 className="text-3xl font-bold text-dark-text mb-2">Generador de QR Profesional</h1> <p className="text-gray-500">Crea y personaliza tus códigos QR fácilmente.</p> </div>
                 <div className="flex flex-wrap gap-2 border-b pb-4">
                     <button onClick={() => handleTypeChange('url')} className={`px-4 py-2 rounded-lg flex items-center gap-2 transition-colors ${qrType === 'url' ? 'bg-brand-primary text-white' : 'bg-gray-100 hover:bg-gray-200'}`}><LinkIcon size={18} /> URL</button>
                     <button onClick={() => handleTypeChange('text')} className={`px-4 py-2 rounded-lg flex items-center gap-2 transition-colors ${qrType === 'text' ? 'bg-brand-primary text-white' : 'bg-gray-100 hover:bg-gray-200'}`}><Type size={18} /> Texto</button>
@@ -192,14 +184,15 @@ export function QRGenerator() {
                 <div className="w-[350px] h-[350px] bg-white p-2 rounded-lg shadow-md mb-6 flex items-center justify-center">
                     {finalImage ? <img src={finalImage} alt="Generated QR Code" style={{maxWidth: '100%', maxHeight: '100%'}} /> : <div className="text-gray-400 text-center">Generando...</div>}
                 </div>
-                <div ref={previewRef} style={{ display: 'none' }}></div>
+                {/* Div oculto donde se dibuja el QR base, ya no es necesario */}
+                {/* <div ref={previewRef} style={{ display: 'none' }}></div> */}
                 <canvas ref={finalCanvasRef} style={{ display: 'none' }}></canvas>
                  <div className="relative w-full">
                     <button  onClick={() => setDownloadMenuOpen(!isDownloadMenuOpen)} disabled={!qrData.trim()}  className="w-full flex items-center justify-center gap-2 bg-gradient-to-r from-brand-primary to-brand-secondary text-white font-bold py-3 px-6 rounded-lg shadow-lg hover:scale-105 transition-transform disabled:opacity-50 disabled:cursor-not-allowed"> <Download size={20} /> Descargar <ChevronDown size={20} className={`transition-transform ${isDownloadMenuOpen ? 'rotate-180' : ''}`} /> </button>
                     {isDownloadMenuOpen && (
                         <div className="absolute bottom-full mb-2 w-full bg-white rounded-lg shadow-xl border overflow-hidden z-10">
                             <button onClick={handlePngDownload} className="w-full text-left px-4 py-3 hover:bg-gray-100">Descargar PNG (con marco)</button>
-                            <button onClick={handleSvgDownload} className="w-full text-left px-4 py-3 hover:bg-gray-100 border-t">Descargar SVG (sin marco)</button>
+                            <button onClick={handleSvgDownload} className="w-full text-left px-4 py-3 hover:bg-gray-100 border-t">Descargar SVG (sin marco/logo)</button>
                         </div>
                     )}
                 </div>
