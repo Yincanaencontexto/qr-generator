@@ -9,6 +9,30 @@ const dotStyleOptions: { name: string, value: DotType }[] = [ { name: 'Cuadrado'
 const eyeStyleOptions: { name: string, value: CornerSquareType }[] = [ { name: 'Cuadrado', value: 'square' }, { name: 'Punto', value: 'dot' }, { name: 'Extra Redondo', value: 'extra-rounded' }];
 const eyeDotStyleOptions: { name: string, value: CornerDotType }[] = [ { name: 'Cuadrado', value: 'square' }, { name: 'Punto', value: 'dot' }];
 
+// Componente reutilizable para el selector de color circular
+const ColorPicker = ({ label, color, setColor }: { label: string, color: string, setColor: (color: string) => void }) => {
+    const inputRef = useRef<HTMLInputElement>(null);
+    return (
+        <div>
+            <label className="text-sm font-medium text-gray-600 block mb-2">{label}</label>
+            <div 
+                onClick={() => inputRef.current?.click()}
+                className="w-10 h-10 rounded-full border-2 border-gray-200 cursor-pointer shadow-sm"
+                style={{ backgroundColor: color }}
+            >
+                <input 
+                    ref={inputRef}
+                    type="color" 
+                    value={color} 
+                    onChange={(e) => setColor(e.target.value)}
+                    className="opacity-0 w-0 h-0"
+                />
+            </div>
+        </div>
+    );
+};
+
+
 export function QRGenerator() {
     const [qrType, setQrType] = useState<QRType>('url');
     const [qrData, setQrData] = useState('https://www.google.com');
@@ -84,14 +108,7 @@ export function QRGenerator() {
     return (
         <div className="w-full min-h-screen bg-gray-100 flex flex-col lg:flex-row overflow-y-auto lg:overflow-hidden">
             <div className="w-full lg:w-1/4 lg:max-w-xs bg-white p-6 border-b lg:border-b-0 lg:border-r flex flex-col">
-                <div className="mb-8">
-                    <div className="flex items-center gap-3">
-                        <span className="bg-brand-primary p-2 rounded-lg text-white"><QrCode size={24}/></span>
-                        <h1 className="text-2xl font-bold text-gray-800">Generador QR</h1>
-                    </div>
-                    <p className="text-sm text-gray-500 mt-2">Una herramienta creada por <a href="https://piedrahitasanchez.com/" target="_blank" rel="noopener noreferrer" className="font-semibold text-brand-primary hover:underline">Piedrahita Sánchez</a>.</p>
-                </div>
-                
+                <div className="mb-8"> <div className="flex items-center gap-3"> <span className="bg-brand-primary p-2 rounded-lg text-white"><QrCode size={24}/></span> <h1 className="text-2xl font-bold text-gray-800">Generador QR</h1> </div> <p className="text-sm text-gray-500 mt-2"> Una herramienta creada por <a href="https://piedrahitasanchez.com/" target="_blank" rel="noopener noreferrer" className="font-semibold text-brand-primary hover:underline">Piedrahita Sánchez</a>. </p> </div>
                 <h2 className="text-lg font-semibold mb-4 text-gray-600">Tipo de QR</h2>
                 <div className="grid grid-cols-2 gap-2 lg:flex lg:flex-col lg:space-y-2">
                     <button onClick={() => handleTypeChange('url')} className={`w-full text-left px-4 py-3 rounded-lg flex items-center gap-3 transition-all ${qrType === 'url' ? 'bg-brand-primary text-white shadow-lg' : 'bg-gray-100 hover:bg-gray-200'}`}><LinkIcon size={20}/> URL</button>
@@ -103,28 +120,24 @@ export function QRGenerator() {
                     <button onClick={() => handleTypeChange('vcard')} className={`w-full text-left px-4 py-3 rounded-lg flex items-center gap-3 transition-all ${qrType === 'vcard' ? 'bg-brand-primary text-white shadow-lg' : 'bg-gray-100 hover:bg-gray-200'}`}><User size={20}/> vCard</button>
                 </div>
             </div>
-
             <div className="flex-1 p-6 lg:p-8 overflow-y-auto">
                 <div className="max-w-xl mx-auto space-y-8">
-                    <div className="bg-white p-6 rounded-xl shadow-sm">
-                         <h3 className="font-bold text-lg mb-4 flex items-center gap-2"><ScanLine size={22}/> Contenido</h3>
-                        {renderForm()}
-                    </div>
+                    <div className="bg-white p-6 rounded-xl shadow-sm"> <h3 className="font-bold text-lg mb-4 flex items-center gap-2"><ScanLine size={22}/> Contenido</h3> {renderForm()} </div>
                     <div className="bg-white p-6 rounded-xl shadow-sm">
                         <h3 className="font-bold text-lg mb-4 flex items-center gap-2"><Paintbrush size={22}/> Diseño y Colores</h3>
-                        <div className="space-y-4">
+                        <div className="space-y-6">
                             <div>
-                                <h4 className="text-md font-semibold text-gray-700 mb-2">Colores</h4>
-                                <div className="grid grid-cols-2 lg:grid-cols-3 gap-4">
-                                    <div><label className="text-sm font-medium text-gray-600">Puntos</label><input type="color" value={colorDark} onChange={(e) => setColorDark(e.target.value)} className="w-full h-10 mt-1 p-1 border rounded-md cursor-pointer"/></div>
-                                    <div><label className="text-sm font-medium text-gray-600">Fondo</label><input type="color" value={colorLight} onChange={(e) => setColorLight(e.target.value)} className="w-full h-10 mt-1 p-1 border rounded-md cursor-pointer"/></div>
-                                    <div><label className="text-sm font-medium text-gray-600">Marco Ojos</label><input type="color" value={eyeFrameColor} onChange={(e) => setEyeFrameColor(e.target.value)} className="w-full h-10 mt-1 p-1 border rounded-md cursor-pointer"/></div>
-                                    <div><label className="text-sm font-medium text-gray-600">Punto Ojos</label><input type="color" value={eyeDotColor} onChange={(e) => setEyeDotColor(e.target.value)} className="w-full h-10 mt-1 p-1 border rounded-md cursor-pointer"/></div>
+                                <h4 className="text-md font-semibold text-gray-700 mb-3">Colores</h4>
+                                <div className="flex flex-wrap gap-6">
+                                    <ColorPicker label="Puntos" color={colorDark} setColor={setColorDark} />
+                                    <ColorPicker label="Fondo" color={colorLight} setColor={setColorLight} />
+                                    <ColorPicker label="Marco Ojos" color={eyeFrameColor} setColor={setEyeFrameColor} />
+                                    <ColorPicker label="Punto Ojos" color={eyeDotColor} setColor={setEyeDotColor} />
                                 </div>
                             </div>
-                            <div className="mt-6 border-t pt-4">
-                                <h4 className="text-md font-semibold text-gray-700 mb-2">Formas</h4>
-                                <div className="grid grid-cols-2 lg:grid-cols-3 gap-4">
+                            <div className="border-t pt-4">
+                                <h4 className="text-md font-semibold text-gray-700 mb-3">Formas</h4>
+                                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                                     <div><label className="text-sm font-medium text-gray-600">Puntos</label><select onChange={(e) => setDotStyle(e.target.value as DotType)} value={dotStyle} className="w-full p-2 mt-1 border rounded-md bg-white">{dotStyleOptions.map(opt => <option key={opt.value} value={opt.value}>{opt.name}</option>)}</select></div>
                                     <div><label className="text-sm font-medium text-gray-600">Marco Ojos</label><select onChange={(e) => setEyeFrameStyle(e.target.value as CornerSquareType)} value={eyeFrameStyle} className="w-full p-2 mt-1 border rounded-md bg-white">{eyeStyleOptions.map(opt => <option key={opt.value} value={opt.value}>{opt.name}</option>)}</select></div>
                                     <div><label className="text-sm font-medium text-gray-600">Punto Ojos</label><select onChange={(e) => setEyeDotStyle(e.target.value as CornerDotType)} value={eyeDotStyle} className="w-full p-2 mt-1 border rounded-md bg-white">{eyeDotStyleOptions.map(opt => <option key={opt.value} value={opt.value}>{opt.name}</option>)}</select></div>
@@ -137,7 +150,7 @@ export function QRGenerator() {
             </div>
             <div className="w-full lg:w-1/3 bg-gray-200 p-6 lg:p-8 flex flex-col items-center justify-center">
                  <h2 className="text-2xl font-bold mb-6">Vista Previa</h2>
-                 <div ref={previewRef} className="w-[300px] sm:w-[340px] h-[300px] sm:h-[340px] bg-white rounded-lg shadow-xl p-0 sm:p-4 flex items-center justify-center"></div>
+                 <div ref={previewRef} className="w-[340px] h-[340px] bg-white rounded-lg shadow-xl p-4 flex items-center justify-center"></div>
                  <div className="relative w-full max-w-xs mt-8">
                     <button onClick={() => setDownloadMenuOpen(!isDownloadMenuOpen)} disabled={!qrData.trim()} className="w-full flex items-center justify-center gap-2 bg-gradient-to-r from-brand-primary to-brand-secondary text-white font-bold py-3 px-6 rounded-lg shadow-lg hover:scale-105 transition-transform disabled:opacity-50"> <Download size={20}/> Descargar <ChevronDown size={20} className={`transition-transform ${isDownloadMenuOpen ? 'rotate-180' : ''}`}/> </button>
                     {isDownloadMenuOpen && ( <div className="absolute bottom-full mb-2 w-full bg-white rounded-lg shadow-xl border z-10"> <button onClick={handlePngDownload} className="w-full text-left px-4 py-3 hover:bg-gray-100">Descargar PNG</button> <button onClick={handleSvgDownload} className="w-full text-left px-4 py-3 hover:bg-gray-100 border-t">Descargar SVG</button> </div> )}
