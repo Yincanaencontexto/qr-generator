@@ -46,19 +46,18 @@ export function QRGenerator() {
     useEffect(() => {
         if (!qrInstance) return;
         let finalData = '';
-        let isEmpty = true;
 
         switch (qrType) {
-            case 'url': case 'text': finalData = inputValue; isEmpty = !inputValue.trim(); break;
-            case 'email': finalData = `mailto:${emailData.to}?subject=${encodeURIComponent(emailData.subject)}`; isEmpty = !emailData.to.trim(); break;
-            case 'sms': finalData = `SMSTO:${smsData.number}:${encodeURIComponent(smsData.message)}`; isEmpty = !smsData.number.trim(); break;
-            case 'wifi': finalData = `WIFI:T:${wifiData.encryption};S:${wifiData.ssid};P:${wifiData.password};;`; isEmpty = !wifiData.ssid.trim(); break;
-            case 'phone': finalData = `tel:${phoneData.country.dial_code}${phoneData.number}`; isEmpty = !phoneData.number.trim(); break;
+            case 'url': case 'text': finalData = inputValue; break;
+            case 'email': finalData = `mailto:${emailData.to}?subject=${encodeURIComponent(emailData.subject)}`; break;
+            case 'sms': finalData = `SMSTO:${smsData.number}:${encodeURIComponent(smsData.message)}`; break;
+            case 'wifi': finalData = `WIFI:T:${wifiData.encryption};S:${wifiData.ssid};P:${wifiData.password};;`; break;
+            case 'phone': finalData = `tel:${phoneData.country.dial_code}${phoneData.number}`; break;
         }
         setQrData(finalData);
 
         if (!finalData.trim()){
-             qrInstance.update({ data: ' ' }); // Dibuja un QR vacío si no hay datos
+             qrInstance.update({ data: ' ' });
              return;
         }
         
