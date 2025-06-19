@@ -1,10 +1,9 @@
 import { useState, useRef, useEffect } from 'react';
 import QRCodeStyling, { DotType, CornerSquareType } from 'qr-code-styling';
-import { Download, Link as LinkIcon, Type, Palette, Mail, MessageSquare, Wifi, Frame, Smartphone, ChevronDown } from 'lucide-react';
+import { Download, Link as LinkIcon, Type, Palette, Mail, MessageSquare, Wifi, Smartphone, ChevronDown, ImageIcon, TextCursorInput, Paintbrush, ScanLine } from 'lucide-react';
 import { countryCodes, Country } from '../data/country-codes';
 
 type QRType = 'url' | 'text' | 'email' | 'sms' | 'wifi' | 'phone';
-type FrameType = 'none' | 'scan-me-1' | 'scan-me-2';
 
 const dotStyleOptions: { name: string, value: DotType }[] = [ { name: 'Cuadrado', value: 'square' }, { name: 'Punto', value: 'dots' }, { name: 'Redondeado', value: 'rounded' }, { name: 'Extra Redondeado', value: 'extra-rounded' }, { name: 'Con Clase', value: 'classy' }, { name: 'Con Clase (Redondo)', value: 'classy-rounded' }];
 const eyeStyleOptions: { name: string, value: CornerSquareType }[] = [ { name: 'Cuadrado', value: 'square' }, { name: 'Punto', value: 'dot' }, { name: 'Extra Redondo', value: 'extra-rounded' }];
@@ -24,14 +23,13 @@ export function QRGenerator() {
     const [logo, setLogo] = useState<string | null>(null);
     const [dotStyle, setDotStyle] = useState<DotType>('square');
     const [eyeStyle, setEyeStyle] = useState<CornerSquareType>('square');
-    const [frame, setFrame] = useState<FrameType>('none');
 
+    const previewRef = useRef<HTMLDivElement>(null);
     const [qrInstance] = useState(new QRCodeStyling({ width: 300, height: 300, margin: 5, type: 'canvas', imageOptions: { hideBackgroundDots: true, imageSize: 0.4, margin: 5 } }));
-    const finalCanvasRef = useRef<HTMLCanvasElement>(null);
-    const [finalImage, setFinalImage] = useState<string | null>(null);
     const [isDownloadMenuOpen, setDownloadMenuOpen] = useState(false);
 
     useEffect(() => {
+        if (!qrInstance) return;
         let finalData = '';
         switch (qrType) {
             case 'url': case 'text': finalData = inputValue; break;
@@ -41,7 +39,6 @@ export function QRGenerator() {
             case 'phone': finalData = `tel:${phoneData.country.dial_code}${phoneData.number}`; break;
         }
         setQrData(finalData);
-        
         qrInstance.update({
             data: finalData || ' ',
             dotsOptions: { color: colorDark, type: dotStyle },
@@ -49,74 +46,17 @@ export function QRGenerator() {
             backgroundOptions: { color: colorLight },
             image: logo || undefined,
         });
+    }, [inputValue, emailData, smsData, wifiData, phoneData, qrType, colorDark, colorLight, logo, dotStyle, eyeStyle, qrInstance]);
 
-        generateFinalImage();
-
-    }, [inputValue, emailData, smsData, wifiData, phoneData, qrType, colorDark, colorLight, logo, dotStyle, eyeStyle, frame, qrInstance]);
-
-    const generateFinalImage = async () => {
-        const finalCanvas = finalCanvasRef.current;
-        if (!finalCanvas) return;
-        const ctx = finalCanvas.getContext('2d');
-        if (!ctx) return;
-
-        const frameSize = 400;
-        finalCanvas.width = frameSize;
-        finalCanvas.height = frameSize;
-        
-        ctx.fillStyle = '#FFFFFF';
-        ctx.fillRect(0, 0, frameSize, frameSize);
-        
-        const qrImageBlob = await qrInstance.getRawData('png');
-        if (!qrImageBlob) return;
-        
-        const image = new Image();
-        image.src = URL.createObjectURL(qrImageBlob as Blob);
-        image.onload = () => {
-            const qrSize = 300;
-            let qrX = (frameSize - qrSize) / 2;
-            let qrY = (frameSize - qrSize) / 2;
-
-            if (frame === 'none') {
-                ctx.drawImage(image, qrX, qrY, qrSize, qrSize);
-            } else {
-                ctx.fillStyle = colorDark;
-                ctx.font = 'bold 30px Arial';
-                ctx.textAlign = 'center';
-
-                if (frame === 'scan-me-1') {
-                    const textY = 50;
-                    qrY = textY + 15;
-                    ctx.fillText('SCAN ME', frameSize / 2, textY);
-                    ctx.drawImage(image, qrX, qrY, qrSize, qrSize);
-                } else if (frame === 'scan-me-2') {
-                    qrY = 30;
-                    const textY = qrY + qrSize + 35;
-                    ctx.drawImage(image, qrX, qrY, qrSize, qrSize);
-                    ctx.fillText('SCAN ME', frameSize / 2, textY);
-                }
-            }
-            setFinalImage(finalCanvas.toDataURL());
-            URL.revokeObjectURL(image.src);
-        };
-    };
-
-    const handlePngDownload = () => {
-        const canvas = finalCanvasRef.current;
-        if (canvas) {
-            const link = document.createElement('a');
-            link.download = 'qr-code-final.png';
-            link.href = canvas.toDataURL('image/png');
-            link.click();
+    useEffect(() => {
+        if (previewRef.current) {
+            previewRef.current.innerHTML = '';
+            qrInstance.append(previewRef.current);
         }
-        setDownloadMenuOpen(false);
-    };
+    }, [qrInstance]);
 
-    const handleSvgDownload = () => {
-        qrInstance.download({ name: 'qr-code', extension: 'svg' });
-        setDownloadMenuOpen(false);
-    };
-    
+    const handlePngDownload = () => { qrInstance?.download({ name: 'qr-code', extension: 'png' }); setDownloadMenuOpen(false); };
+    const handleSvgDownload = () => { qrInstance?.download({ name: 'qr-code', extension: 'svg' }); setDownloadMenuOpen(false); };
     const handleLogoUpload = (e: React.ChangeEvent<HTMLInputElement>) => { if (e.target.files && e.target.files[0]) { const reader = new FileReader(); reader.onload = (event) => setLogo(event.target?.result as string); reader.readAsDataURL(e.target.files[0]); } };
     const handleTypeChange = (newType: QRType) => { setQrType(newType); setInputValue(newType === 'url' ? 'https://' : '¡Hola Mundo!'); setEmailData({ to: '', subject: '' }); setSmsData({ number: '', message: '' }); setWifiData({ ssid: '', password: '', encryption: 'WPA' }); setPhoneData({ country: countryCodes[0], number: '' }); };
     
@@ -133,70 +73,56 @@ export function QRGenerator() {
     };
 
     return (
-        <div className="container max-w-5xl mx-auto bg-white rounded-2xl shadow-2xl p-6 md:p-10 grid lg:grid-cols-2 gap-10">
-            <div className="flex flex-col space-y-6">
-                 <div> <h1 className="text-3xl font-bold text-dark-text mb-2">Generador de QR Profesional</h1> <p className="text-gray-500">Crea y personaliza tus códigos QR fácilmente.</p> </div>
-                <div className="flex flex-wrap gap-2 border-b pb-4">
-                    <button onClick={() => handleTypeChange('url')} className={`px-4 py-2 rounded-lg flex items-center gap-2 transition-colors ${qrType === 'url' ? 'bg-brand-primary text-white' : 'bg-gray-100 hover:bg-gray-200'}`}><LinkIcon size={18} /> URL</button>
-                    <button onClick={() => handleTypeChange('text')} className={`px-4 py-2 rounded-lg flex items-center gap-2 transition-colors ${qrType === 'text' ? 'bg-brand-primary text-white' : 'bg-gray-100 hover:bg-gray-200'}`}><Type size={18} /> Texto</button>
-                    <button onClick={() => handleTypeChange('email')} className={`px-4 py-2 rounded-lg flex items-center gap-2 transition-colors ${qrType === 'email' ? 'bg-brand-primary text-white' : 'bg-gray-100 hover:bg-gray-200'}`}><Mail size={18} /> Email</button>
-                    <button onClick={() => handleTypeChange('sms')} className={`px-4 py-2 rounded-lg flex items-center gap-2 transition-colors ${qrType === 'sms' ? 'bg-brand-primary text-white' : 'bg-gray-100 hover:bg-gray-200'}`}><MessageSquare size={18} /> SMS</button>
-                    <button onClick={() => handleTypeChange('wifi')} className={`px-4 py-2 rounded-lg flex items-center gap-2 transition-colors ${qrType === 'wifi' ? 'bg-brand-primary text-white' : 'bg-gray-100 hover:bg-gray-200'}`}><Wifi size={18} /> WiFi</button>
-                    <button onClick={() => handleTypeChange('phone')} className={`px-4 py-2 rounded-lg flex items-center gap-2 transition-colors ${qrType === 'phone' ? 'bg-brand-primary text-white' : 'bg-gray-100 hover:bg-gray-200'}`}><Smartphone size={18} /> Teléfono</button>
+        <div className="w-full h-screen max-h-screen bg-gray-100 flex overflow-hidden">
+            <div className="w-1/4 max-w-xs bg-white p-6 border-r overflow-y-auto">
+                <h2 className="text-xl font-bold mb-6">Tipo de QR</h2>
+                <div className="space-y-2">
+                    <button onClick={() => handleTypeChange('url')} className={`w-full text-left px-4 py-3 rounded-lg flex items-center gap-3 transition-all ${qrType === 'url' ? 'bg-brand-primary text-white shadow-lg' : 'bg-gray-100 hover:bg-gray-200'}`}><LinkIcon size={20}/> URL</button>
+                    <button onClick={() => handleTypeChange('text')} className={`w-full text-left px-4 py-3 rounded-lg flex items-center gap-3 transition-all ${qrType === 'text' ? 'bg-brand-primary text-white shadow-lg' : 'bg-gray-100 hover:bg-gray-200'}`}><TextCursorInput size={20}/> Texto</button>
+                    <button onClick={() => handleTypeChange('email')} className={`w-full text-left px-4 py-3 rounded-lg flex items-center gap-3 transition-all ${qrType === 'email' ? 'bg-brand-primary text-white shadow-lg' : 'bg-gray-100 hover:bg-gray-200'}`}><Mail size={20}/> Email</button>
+                    <button onClick={() => handleTypeChange('sms')} className={`w-full text-left px-4 py-3 rounded-lg flex items-center gap-3 transition-all ${qrType === 'sms' ? 'bg-brand-primary text-white shadow-lg' : 'bg-gray-100 hover:bg-gray-200'}`}><MessageSquare size={20}/> SMS</button>
+                    <button onClick={() => handleTypeChange('wifi')} className={`w-full text-left px-4 py-3 rounded-lg flex items-center gap-3 transition-all ${qrType === 'wifi' ? 'bg-brand-primary text-white shadow-lg' : 'bg-gray-100 hover:bg-gray-200'}`}><Wifi size={20}/> WiFi</button>
+                    <button onClick={() => handleTypeChange('phone')} className={`w-full text-left px-4 py-3 rounded-lg flex items-center gap-3 transition-all ${qrType === 'phone' ? 'bg-brand-primary text-white shadow-lg' : 'bg-gray-100 hover:bg-gray-200'}`}><Smartphone size={20}/> Teléfono</button>
                 </div>
-                <div className="bg-light-bg p-4 rounded-lg border"> <h2 className="font-semibold text-lg mb-4">Contenido del QR</h2> {renderForm()} </div>
-                <div className="bg-light-bg p-4 rounded-lg border">
-                    <h2 className="font-semibold text-lg mb-4 flex items-center gap-2"><Palette size={20} /> Personalización</h2>
-                    <div className="grid grid-cols-2 gap-4 mb-4">
-                        <div><label htmlFor="color-dark" className="block text-sm font-medium text-gray-700 mb-1">Color Puntos</label><input id="color-dark" type="color" value={colorDark} onChange={(e) => setColorDark(e.target.value)} className="w-full h-10 p-1 border rounded-md cursor-pointer" /></div>
-                        <div><label htmlFor="color-light" className="block text-sm font-medium text-gray-700 mb-1">Color Fondo</label><input id="color-light" type="color" value={colorLight} onChange={(e) => setColorLight(e.target.value)} className="w-full h-10 p-1 border rounded-md cursor-pointer" /></div>
+            </div>
+            <div className="flex-1 p-8 overflow-y-auto">
+                <div className="max-w-xl mx-auto space-y-8">
+                    <div className="bg-white p-6 rounded-xl shadow-sm">
+                         <h3 className="font-bold text-lg mb-4 flex items-center gap-2"><ScanLine size={22}/> Contenido</h3>
+                        {renderForm()}
                     </div>
-                    <div className="mb-4">
-                        <label htmlFor="logo-upload" className="block text-sm font-medium text-gray-700 mb-1">Logo (opcional)</label>
-                        <input id="logo-upload" type="file" accept="image/png, image/jpeg, image/svg+xml" onChange={handleLogoUpload} className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-brand-primary/10 file:text-brand-primary hover:file:bg-brand-primary/20 cursor-pointer" />
+                    <div className="bg-white p-6 rounded-xl shadow-sm">
+                        <h3 className="font-bold text-lg mb-4 flex items-center gap-2"><Paintbrush size={22}/> Diseño y Colores</h3>
+                        <div className="grid grid-cols-2 gap-4">
+                            <div><label className="text-sm font-medium text-gray-600">Color Puntos</label><input type="color" value={colorDark} onChange={(e) => setColorDark(e.target.value)} className="w-full h-10 mt-1 p-1 border rounded-md cursor-pointer"/></div>
+                            <div><label className="text-sm font-medium text-gray-600">Color Fondo</label><input type="color" value={colorLight} onChange={(e) => setColorLight(e.target.value)} className="w-full h-10 mt-1 p-1 border rounded-md cursor-pointer"/></div>
+                        </div>
+                        <div className="mt-4 grid grid-cols-2 gap-4">
+                            <div><label className="text-sm font-medium text-gray-600">Estilo Puntos</label><select onChange={(e) => setDotStyle(e.target.value as DotType)} value={dotStyle} className="w-full p-2 mt-1 border rounded-md bg-white">{dotStyleOptions.map(opt => <option key={opt.value} value={opt.value}>{opt.name}</option>)}</select></div>
+                            <div><label className="text-sm font-medium text-gray-600">Estilo Ojos</label><select onChange={(e) => setEyeStyle(e.target.value as CornerSquareType)} value={eyeStyle} className="w-full p-2 mt-1 border rounded-md bg-white">{eyeStyleOptions.map(opt => <option key={opt.value} value={opt.value}>{opt.name}</option>)}</select></div>
+                        </div>
+                    </div>
+                     <div className="bg-white p-6 rounded-xl shadow-sm">
+                        <h3 className="font-bold text-lg mb-4 flex items-center gap-2"><ImageIcon size={22}/> Logo</h3>
+                        <input type="file" accept="image/png, image/jpeg" onChange={handleLogoUpload} className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-brand-primary/10 file:text-brand-primary hover:file:bg-brand-primary/20"/>
                         {logo && <button onClick={() => setLogo(null)} className="text-xs text-red-500 hover:underline mt-2">Quitar logo</button>}
-                    </div>
-                     <div className="grid grid-cols-2 gap-4">
-                        <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1">Estilo Puntos</label>
-                            <select onChange={(e) => setDotStyle(e.target.value as DotType)} value={dotStyle} className="w-full p-2 border rounded-md bg-white">
-                                {dotStyleOptions.map(opt => <option key={opt.value} value={opt.value}>{opt.name}</option>)}
-                            </select>
-                        </div>
-                         <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1">Estilo Ojos</label>
-                            <select onChange={(e) => setEyeStyle(e.target.value as CornerSquareType)} value={eyeStyle} className="w-full p-2 border rounded-md bg-white">
-                                {eyeStyleOptions.map(opt => <option key={opt.value} value={opt.value}>{opt.name}</option>)}
-                            </select>
-                        </div>
-                    </div>
-                </div>
-                 <div className="bg-light-bg p-4 rounded-lg border">
-                    <h2 className="font-semibold text-lg mb-4 flex items-center gap-2"><Frame size={20} /> Marcos</h2>
-                    <div className="flex flex-wrap gap-2">
-                        <button onClick={() => setFrame('none')} className={`px-3 py-2 text-sm rounded-lg border-2 ${frame === 'none' ? 'border-brand-primary bg-brand-primary/10' : 'border-gray-200'}`}>Sin Marco</button>
-                        <button onClick={() => setFrame('scan-me-1')} className={`px-3 py-2 text-sm rounded-lg border-2 ${frame === 'scan-me-1' ? 'border-brand-primary bg-brand-primary/10' : 'border-gray-200'}`}>Scan Me #1</button>
-                        <button onClick={() => setFrame('scan-me-2')} className={`px-3 py-2 text-sm rounded-lg border-2 ${frame === 'scan-me-2' ? 'border-brand-primary bg-brand-primary/10' : 'border-gray-200'}`}>Scan Me #2</button>
                     </div>
                 </div>
             </div>
-            <div className="bg-light-bg rounded-lg p-6 flex flex-col items-center justify-center border-2 border-dashed">
-                <h2 className="text-xl font-bold text-dark-text mb-4">Vista Previa</h2>
-                <div className="w-[350px] h-[350px] bg-white p-2 rounded-lg shadow-md mb-6 flex items-center justify-center">
-                    {finalImage ? <img src={finalImage} alt="Generated QR Code" style={{maxWidth: '100%', maxHeight: '100%'}} /> : <div className="text-gray-400 text-center">Generando...</div>}
-                </div>
-                {/* Div oculto que usa la librería qr-code-styling, ya no lo necesitamos */}
-                {/* <div ref={previewRef} style={{ display: 'none' }}></div> */}
-                <canvas ref={finalCanvasRef} style={{ display: 'none' }}></canvas>
-                 <div className="relative w-full">
-                    <button  onClick={() => setDownloadMenuOpen(!isDownloadMenuOpen)} disabled={!qrData.trim()}  className="w-full flex items-center justify-center gap-2 bg-gradient-to-r from-brand-primary to-brand-secondary text-white font-bold py-3 px-6 rounded-lg shadow-lg hover:scale-105 transition-transform disabled:opacity-50 disabled:cursor-not-allowed"> <Download size={20} /> Descargar <ChevronDown size={20} className={`transition-transform ${isDownloadMenuOpen ? 'rotate-180' : ''}`} /> </button>
+            <div className="w-1/3 bg-gray-200 p-8 flex flex-col items-center justify-center">
+                 <h2 className="text-2xl font-bold mb-6">Vista Previa</h2>
+                 <div ref={previewRef} className="w-[300px] h-[300px] bg-white rounded-lg shadow-xl p-4"></div>
+                 <div className="relative w-full max-w-xs mt-8">
+                    <button onClick={() => setDownloadMenuOpen(!isDownloadMenuOpen)} disabled={!qrData.trim()} className="w-full flex items-center justify-center gap-2 bg-gradient-to-r from-brand-primary to-brand-secondary text-white font-bold py-3 px-6 rounded-lg shadow-lg hover:scale-105 transition-transform disabled:opacity-50">
+                        <Download size={20}/> Descargar <ChevronDown size={20} className={`transition-transform ${isDownloadMenuOpen ? 'rotate-180' : ''}`}/>
+                    </button>
                     {isDownloadMenuOpen && (
-                        <div className="absolute bottom-full mb-2 w-full bg-white rounded-lg shadow-xl border overflow-hidden z-10">
-                            <button onClick={handlePngDownload} className="w-full text-left px-4 py-3 hover:bg-gray-100">Descargar PNG (con marco)</button>
-                            <button onClick={handleSvgDownload} className="w-full text-left px-4 py-3 hover:bg-gray-100 border-t">Descargar SVG (sin marco/logo)</button>
+                        <div className="absolute bottom-full mb-2 w-full bg-white rounded-lg shadow-xl border z-10">
+                            <button onClick={handlePngDownload} className="w-full text-left px-4 py-3 hover:bg-gray-100">Descargar PNG</button>
+                            <button onClick={handleSvgDownload} className="w-full text-left px-4 py-3 hover:bg-gray-100 border-t">Descargar SVG</button>
                         </div>
                     )}
-                </div>
+                 </div>
             </div>
         </div>
     );
