@@ -1,9 +1,10 @@
 import { useState, useRef, useEffect } from 'react';
 import QRCode from 'qrcode';
-import { Download, Link as LinkIcon, Type, Palette, Mail, MessageSquare } from 'lucide-react';
+// <-- NUEVO: Añadido el icono de Wifi
+import { Download, Link as LinkIcon, Type, Palette, Mail, MessageSquare, Wifi } from 'lucide-react';
 
 // Tipos de QR que soporta la aplicación
-type QRType = 'url' | 'text' | 'email' | 'sms';
+type QRType = 'url' | 'text' | 'email' | 'sms' | 'wifi';
 // Niveles de corrección de error para el QR (necesario para TypeScript)
 type QRErrorCorrectionLevel = 'L' | 'M' | 'Q' | 'H';
 
@@ -14,9 +15,11 @@ export function QRGenerator() {
     const canvasRef = useRef<HTMLCanvasElement>(null);
 
     // --- ESTADOS PARA DATOS DE ENTRADA ---
-    const [inputValue, setInputValue] = useState('https://www.google.com'); // Para URL y Texto
-    const [emailData, setEmailData] = useState({ to: '', subject: '' }); // Para Email
-    const [smsData, setSmsData] = useState({ number: '', message: '' }); // Para SMS
+    const [inputValue, setInputValue] = useState('https://www.google.com');
+    const [emailData, setEmailData] = useState({ to: '', subject: '' });
+    const [smsData, setSmsData] = useState({ number: '', message: '' });
+    // <-- NUEVO: Estado para los datos de la red WiFi
+    const [wifiData, setWifiData] = useState({ ssid: '', password: '', encryption: 'WPA' });
 
     // --- ESTADOS DE PERSONALIZACIÓN ---
     const [colorDark, setColorDark] = useState('#000000');
@@ -43,9 +46,13 @@ export function QRGenerator() {
                 finalData = `SMSTO:${smsData.number}:${encodeURIComponent(smsData.message)}`;
                 isEmpty = !smsData.number.trim();
                 break;
+            // <-- NUEVO: Lógica para construir el string de WiFi
+            case 'wifi':
+                finalData = `WIFI:T:${wifiData.encryption};S:${wifiData.ssid};P:${wifiData.password};;`;
+                isEmpty = !wifiData.ssid.trim();
+                break;
         }
 
-        // Genera el QR solo si hay datos, si no, lo limpia
         if (isEmpty) {
             const canvas = canvasRef.current;
             if (canvas) {
@@ -56,24 +63,21 @@ export function QRGenerator() {
         } else {
             generateQR(finalData);
         }
-    }, [inputValue, emailData, smsData, qrType, colorDark, colorLight, logo]);
+    }, [inputValue, emailData, smsData, wifiData, qrType, colorDark, colorLight, logo]);
 
 
     // --- FUNCIÓN PARA GENERAR EL CÓDIGO QR ---
     const generateQR = (data: string) => {
         const canvas = canvasRef.current;
         if (!canvas) return;
-
         const options = {
             width: 300,
             margin: 2,
             errorCorrectionLevel: 'H' as QRErrorCorrectionLevel,
             color: { dark: colorDark, light: colorLight },
         };
-
         QRCode.toCanvas(canvas, data, options, (error) => {
             if (error) { console.error(error); return; }
-
             if (logo) {
                 const ctx = canvas.getContext('2d');
                 if (!ctx) return;
@@ -103,7 +107,6 @@ export function QRGenerator() {
             reader.readAsDataURL(e.target.files[0]);
         }
     };
-    
     const handleDownload = () => {
         const canvas = canvasRef.current;
         if (canvas) {
@@ -116,13 +119,14 @@ export function QRGenerator() {
             document.body.removeChild(downloadLink);
         }
     };
-    
     const handleTypeChange = (newType: QRType) => {
         setQrType(newType);
         // Reiniciar los valores al cambiar de tipo
         setInputValue(newType === 'url' ? 'https://' : '¡Hola Mundo!');
         setEmailData({ to: '', subject: '' });
         setSmsData({ number: '', message: '' });
+        // <-- NUEVO: Reiniciar datos de WiFi
+        setWifiData({ ssid: '', password: '', encryption: 'WPA' });
     };
 
     // --- FUNCIÓN PARA RENDERIZAR EL FORMULARIO CORRECTO ---
@@ -133,17 +137,23 @@ export function QRGenerator() {
             case 'text':
                 return <textarea value={inputValue} onChange={(e) => setInputValue(e.target.value)} placeholder="Escribe tu texto aquí..." className="w-full p-2 border rounded-md focus:ring-2 focus:ring-brand-primary outline-none" rows={4} />;
             case 'email':
-                return (
-                    <div className="space-y-4">
-                        <input type="email" value={emailData.to} onChange={(e) => setEmailData({...emailData, to: e.target.value})} placeholder="Email del destinatario" className="w-full p-2 border rounded-md"/>
-                        <input type="text" value={emailData.subject} onChange={(e) => setEmailData({...emailData, subject: e.target.value})} placeholder="Asunto (opcional)" className="w-full p-2 border rounded-md"/>
-                    </div>
-                );
+                return ( <div className="space-y-4"> <input type="email" value={emailData.to} onChange={(e) => setEmailData({...emailData, to: e.target.value})} placeholder="Email del destinatario" className="w-full p-2 border rounded-md"/> <input type="text" value={emailData.subject} onChange={(e) => setEmailData({...emailData, subject: e.target.value})} placeholder="Asunto (opcional)" className="w-full p-2 border rounded-md"/> </div> );
             case 'sms':
+                return ( <div className="space-y-4"> <input type="tel" value={smsData.number} onChange={(e) => setSmsData({...smsData, number: e.target.value})} placeholder="Número de teléfono" className="w-full p-2 border rounded-md"/> <textarea value={smsData.message} onChange={(e) => setSmsData({...smsData, message: e.target.value})} placeholder="Mensaje (opcional)" className="w-full p-2 border rounded-md" rows={3}/> </div> );
+            // <-- NUEVO: Formulario para WiFi -->
+            case 'wifi':
                 return (
                     <div className="space-y-4">
-                        <input type="tel" value={smsData.number} onChange={(e) => setSmsData({...smsData, number: e.target.value})} placeholder="Número de teléfono" className="w-full p-2 border rounded-md"/>
-                        <textarea value={smsData.message} onChange={(e) => setSmsData({...smsData, message: e.target.value})} placeholder="Mensaje (opcional)" className="w-full p-2 border rounded-md" rows={3}/>
+                        <input type="text" value={wifiData.ssid} onChange={(e) => setWifiData({...wifiData, ssid: e.target.value})} placeholder="Nombre de la Red (SSID)" className="w-full p-2 border rounded-md"/>
+                        <input type="password" value={wifiData.password} onChange={(e) => setWifiData({...wifiData, password: e.target.value})} placeholder="Contraseña" className="w-full p-2 border rounded-md"/>
+                        <div>
+                            <label className="text-sm font-medium text-gray-700">Cifrado</label>
+                            <select value={wifiData.encryption} onChange={(e) => setWifiData({...wifiData, encryption: e.target.value})} className="w-full p-2 mt-1 border rounded-md bg-white">
+                                <option value="WPA">WPA/WPA2</option>
+                                <option value="WEP">WEP</option>
+                                <option value="nopass">Ninguno</option>
+                            </select>
+                        </div>
                     </div>
                 );
             default:
@@ -155,15 +165,14 @@ export function QRGenerator() {
         <div className="container max-w-5xl mx-auto bg-white rounded-2xl shadow-2xl p-6 md:p-10 grid lg:grid-cols-2 gap-10">
             {/* Columna de Controles */}
             <div className="flex flex-col space-y-6">
-                <div> 
-                    <h1 className="text-3xl font-bold text-dark-text mb-2">Generador de QR Profesional</h1> 
-                    <p className="text-gray-500">Crea y personaliza tus códigos QR fácilmente.</p> 
-                </div>
+                <div> <h1 className="text-3xl font-bold text-dark-text mb-2">Generador de QR Profesional</h1> <p className="text-gray-500">Crea y personaliza tus códigos QR fácilmente.</p> </div>
+                {/* <-- NUEVO: Botón añadido para WiFi --> */}
                 <div className="flex flex-wrap gap-2 border-b pb-4">
                     <button onClick={() => handleTypeChange('url')} className={`px-4 py-2 rounded-lg flex items-center gap-2 transition-colors ${qrType === 'url' ? 'bg-brand-primary text-white' : 'bg-gray-100 hover:bg-gray-200'}`}><LinkIcon size={18} /> URL</button>
                     <button onClick={() => handleTypeChange('text')} className={`px-4 py-2 rounded-lg flex items-center gap-2 transition-colors ${qrType === 'text' ? 'bg-brand-primary text-white' : 'bg-gray-100 hover:bg-gray-200'}`}><Type size={18} /> Texto</button>
                     <button onClick={() => handleTypeChange('email')} className={`px-4 py-2 rounded-lg flex items-center gap-2 transition-colors ${qrType === 'email' ? 'bg-brand-primary text-white' : 'bg-gray-100 hover:bg-gray-200'}`}><Mail size={18} /> Email</button>
                     <button onClick={() => handleTypeChange('sms')} className={`px-4 py-2 rounded-lg flex items-center gap-2 transition-colors ${qrType === 'sms' ? 'bg-brand-primary text-white' : 'bg-gray-100 hover:bg-gray-200'}`}><MessageSquare size={18} /> SMS</button>
+                    <button onClick={() => handleTypeChange('wifi')} className={`px-4 py-2 rounded-lg flex items-center gap-2 transition-colors ${qrType === 'wifi' ? 'bg-brand-primary text-white' : 'bg-gray-100 hover:bg-gray-200'}`}><Wifi size={18} /> WiFi</button>
                 </div>
                 <div className="bg-light-bg p-4 rounded-lg border">
                     <h2 className="font-semibold text-lg mb-4">Contenido del QR</h2>
@@ -172,14 +181,8 @@ export function QRGenerator() {
                 <div className="bg-light-bg p-4 rounded-lg border">
                     <h2 className="font-semibold text-lg mb-4 flex items-center gap-2"><Palette size={20} /> Personalización</h2>
                     <div className="grid grid-cols-2 gap-4 mb-4">
-                        <div>
-                            <label htmlFor="color-dark" className="block text-sm font-medium text-gray-700 mb-1">Color Puntos</label>
-                            <input id="color-dark" type="color" value={colorDark} onChange={(e) => setColorDark(e.target.value)} className="w-full h-10 p-1 border rounded-md cursor-pointer" />
-                        </div>
-                        <div>
-                            <label htmlFor="color-light" className="block text-sm font-medium text-gray-700 mb-1">Color Fondo</label>
-                            <input id="color-light" type="color" value={colorLight} onChange={(e) => setColorLight(e.target.value)} className="w-full h-10 p-1 border rounded-md cursor-pointer" />
-                        </div>
+                        <div><label htmlFor="color-dark" className="block text-sm font-medium text-gray-700 mb-1">Color Puntos</label><input id="color-dark" type="color" value={colorDark} onChange={(e) => setColorDark(e.target.value)} className="w-full h-10 p-1 border rounded-md cursor-pointer" /></div>
+                        <div><label htmlFor="color-light" className="block text-sm font-medium text-gray-700 mb-1">Color Fondo</label><input id="color-light" type="color" value={colorLight} onChange={(e) => setColorLight(e.target.value)} className="w-full h-10 p-1 border rounded-md cursor-pointer" /></div>
                     </div>
                     <div>
                         <label htmlFor="logo-upload" className="block text-sm font-medium text-gray-700 mb-1">Logo (opcional)</label>
@@ -191,13 +194,9 @@ export function QRGenerator() {
             {/* Columna de Vista Previa */}
             <div className="bg-light-bg rounded-lg p-6 flex flex-col items-center justify-center border-2 border-dashed">
                 <h2 className="text-xl font-bold text-dark-text mb-4">Vista Previa</h2>
-                <div className="w-64 h-64 bg-white p-4 rounded-lg shadow-md mb-6 flex items-center justify-center" style={{ backgroundColor: colorLight }}>
-                    {qrCodeDataUrl ? <img src={qrCodeDataUrl} alt="Generated QR Code" /> : <div className="text-gray-400 text-center">Introduce datos para generar el QR</div>}
-                </div>
+                <div className="w-64 h-64 bg-white p-4 rounded-lg shadow-md mb-6 flex items-center justify-center" style={{ backgroundColor: colorLight }}><div style={{width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center'}}>{qrCodeDataUrl ? <img src={qrCodeDataUrl} alt="Generated QR Code" /> : <div className="text-gray-400 text-center">Introduce datos para generar el QR</div>}</div></div>
                 <canvas ref={canvasRef} width="300" height="300" style={{ display: 'none' }}></canvas>
-                <button onClick={handleDownload} disabled={!qrCodeDataUrl} className="w-full flex items-center justify-center gap-2 bg-gradient-to-r from-brand-primary to-brand-secondary text-white font-bold py-3 px-6 rounded-lg shadow-lg hover:scale-105 transition-transform disabled:opacity-50 disabled:cursor-not-allowed">
-                    <Download size={20} /> Descargar PNG
-                </button>
+                <button onClick={handleDownload} disabled={!qrCodeDataUrl} className="w-full flex items-center justify-center gap-2 bg-gradient-to-r from-brand-primary to-brand-secondary text-white font-bold py-3 px-6 rounded-lg shadow-lg hover:scale-105 transition-transform disabled:opacity-50 disabled:cursor-not-allowed"><Download size={20} /> Descargar PNG</button>
             </div>
         </div>
     );
