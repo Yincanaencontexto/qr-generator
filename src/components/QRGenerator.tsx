@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from 'react';
 import QRCodeStyling, { DotType, CornerSquareType } from 'qr-code-styling';
-import { Download, Link as LinkIcon, Mail, MessageSquare, Wifi, Smartphone, ChevronDown, ImageIcon, TextCursorInput, Paintbrush, ScanLine } from 'lucide-react';
+import { Download, Link as LinkIcon, Mail, MessageSquare, Wifi, Smartphone, ChevronDown, ImageIcon, TextCursorInput, Paintbrush, ScanLine, QrCode } from 'lucide-react';
 import { countryCodes, Country } from '../data/country-codes';
 
 type QRType = 'url' | 'text' | 'email' | 'sms' | 'wifi' | 'phone';
@@ -74,8 +74,19 @@ export function QRGenerator() {
 
     return (
         <div className="w-full h-screen max-h-screen bg-gray-100 flex overflow-hidden">
-            <div className="w-1/4 max-w-xs bg-white p-6 border-r overflow-y-auto">
-                <h2 className="text-xl font-bold mb-6">Tipo de QR</h2>
+            <div className="w-1/4 max-w-xs bg-white p-6 border-r flex flex-col">
+                {/* --- NUEVO ENCABEZADO PERSONALIZADO --- */}
+                <div className="mb-8">
+                    <div className="flex items-center gap-3">
+                        <span className="bg-brand-primary p-2 rounded-lg text-white"><QrCode size={24}/></span>
+                        <h1 className="text-2xl font-bold text-gray-800">Generador QR</h1>
+                    </div>
+                    <p className="text-sm text-gray-500 mt-2">
+                        Una herramienta creada por <a href="https://piedrahitasanchez.com/" target="_blank" rel="noopener noreferrer" className="font-semibold text-brand-primary hover:underline">Piedrahita Sánchez</a>.
+                    </p>
+                </div>
+                
+                <h2 className="text-lg font-semibold mb-4 text-gray-600">Tipo de QR</h2>
                 <div className="space-y-2">
                     <button onClick={() => handleTypeChange('url')} className={`w-full text-left px-4 py-3 rounded-lg flex items-center gap-3 transition-all ${qrType === 'url' ? 'bg-brand-primary text-white shadow-lg' : 'bg-gray-100 hover:bg-gray-200'}`}><LinkIcon size={20}/> URL</button>
                     <button onClick={() => handleTypeChange('text')} className={`w-full text-left px-4 py-3 rounded-lg flex items-center gap-3 transition-all ${qrType === 'text' ? 'bg-brand-primary text-white shadow-lg' : 'bg-gray-100 hover:bg-gray-200'}`}><TextCursorInput size={20}/> Texto</button>
