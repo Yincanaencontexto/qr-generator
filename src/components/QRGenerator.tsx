@@ -25,7 +25,7 @@ export function QRGenerator() {
     const [eyeStyle, setEyeStyle] = useState<CornerSquareType>('square');
 
     const previewRef = useRef<HTMLDivElement>(null);
-    const [qrInstance] = useState(new QRCodeStyling({ width: 300, height: 300, margin: 5, type: 'canvas', imageOptions: { hideBackgroundDots: true, imageSize: 0.4, margin: 5 } }));
+    const [qrInstance] = useState(new QRCodeStyling({ width: 300, height: 300, margin: 0, type: 'canvas', imageOptions: { hideBackgroundDots: true, imageSize: 0.4, margin: 5 } }));
     const [isDownloadMenuOpen, setDownloadMenuOpen] = useState(false);
 
     useEffect(() => {
@@ -111,7 +111,7 @@ export function QRGenerator() {
             </div>
             <div className="w-1/3 bg-gray-200 p-8 flex flex-col items-center justify-center">
                  <h2 className="text-2xl font-bold mb-6">Vista Previa</h2>
-                 <div ref={previewRef} className="w-[300px] h-[300px] bg-white rounded-lg shadow-xl p-4"></div>
+                 <div ref={previewRef} className="w-[340px] h-[340px] bg-white rounded-lg shadow-xl p-4 flex items-center justify-center"></div>
                  <div className="relative w-full max-w-xs mt-8">
                     <button onClick={() => setDownloadMenuOpen(!isDownloadMenuOpen)} disabled={!qrData.trim()} className="w-full flex items-center justify-center gap-2 bg-gradient-to-r from-brand-primary to-brand-secondary text-white font-bold py-3 px-6 rounded-lg shadow-lg hover:scale-105 transition-transform disabled:opacity-50">
                         <Download size={20}/> Descargar <ChevronDown size={20} className={`transition-transform ${isDownloadMenuOpen ? 'rotate-180' : ''}`}/>
